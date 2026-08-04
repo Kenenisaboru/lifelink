@@ -154,6 +154,27 @@ export default function DonorDashboardScreen({ navigation }) {
         </View>
       </Card>
 
+      {/* Quick Action Navigation Grid */}
+      <View style={styles.quickNavRow}>
+        <TouchableOpacity style={styles.quickNavCard} onPress={() => navigation.navigate('DonorPassport')}>
+          <Text style={styles.quickNavEmoji}>🪪</Text>
+          <Text style={styles.quickNavTitle}>Passport</Text>
+          <Text style={styles.quickNavSub}>QR & History</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.quickNavCard} onPress={() => navigation.navigate('Leaderboard')}>
+          <Text style={styles.quickNavEmoji}>🏆</Text>
+          <Text style={styles.quickNavTitle}>Leaderboard</Text>
+          <Text style={styles.quickNavSub}>Badges & Perks</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.quickNavCard} onPress={() => navigation.navigate('LiveMap')}>
+          <Text style={styles.quickNavEmoji}>🗺️</Text>
+          <Text style={styles.quickNavTitle}>Live Map</Text>
+          <Text style={styles.quickNavSub}>Nearby Pins</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Section Header & Radius Filter Selector */}
       <View style={styles.sectionHeader}>
         <View>
@@ -388,5 +409,35 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 4,
     lineHeight: 18,
+  },
+  quickNavRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  quickNavCard: {
+    flex: 1,
+    backgroundColor: COLORS.surface,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    marginHorizontal: 3,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  quickNavEmoji: {
+    fontSize: 22,
+    marginBottom: 4,
+  },
+  quickNavTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: COLORS.text,
+  },
+  quickNavSub: {
+    fontSize: 9,
+    color: COLORS.textMuted,
+    marginTop: 2,
   },
 });

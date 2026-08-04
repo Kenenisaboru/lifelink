@@ -62,6 +62,29 @@ export default function HospitalDashboardScreen({ navigation }) {
         </View>
       </Card>
 
+      {/* Quick Tool Navigation Row */}
+      <View style={styles.quickNavRow}>
+        <TouchableOpacity style={styles.quickNavCard} onPress={() => navigation.navigate('BloodInventory')}>
+          <Text style={styles.quickNavEmoji}>🩸</Text>
+          <Text style={styles.quickNavTitle}>Inventory</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.quickNavCard} onPress={() => navigation.navigate('RegionalHeatmap')}>
+          <Text style={styles.quickNavEmoji}>📊</Text>
+          <Text style={styles.quickNavTitle}>Heatmap</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.quickNavCard} onPress={() => navigation.navigate('QRCheckIn')}>
+          <Text style={styles.quickNavEmoji}>📷</Text>
+          <Text style={styles.quickNavTitle}>QR Check-In</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.quickNavCard} onPress={() => navigation.navigate('LiveMap')}>
+          <Text style={styles.quickNavEmoji}>🗺️</Text>
+          <Text style={styles.quickNavTitle}>Live Map</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Action CTA: Create Request */}
       <Button
         title="🚨 Broadcast New Emergency Request"
@@ -356,5 +379,30 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.textSecondary,
     fontWeight: '600',
+  },
+  quickNavRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  quickNavCard: {
+    flex: 1,
+    backgroundColor: COLORS.surface,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    marginHorizontal: 3,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  quickNavEmoji: {
+    fontSize: 20,
+    marginBottom: 4,
+  },
+  quickNavTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: COLORS.text,
   },
 });
