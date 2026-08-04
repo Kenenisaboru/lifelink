@@ -164,19 +164,6 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     lineHeight: 18,
   },
-  demoBox: {
-    backgroundColor: 'rgba(33, 41, 58, 0.6)',
-    borderColor: COLORS.border,
-    padding: 14,
-    marginVertical: 12,
-  },
-  demoTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.accentYellow,
-  },
-  demoSubtitle: {
-    fontSize: 11,
   actionSection: {
     marginTop: 16,
     marginBottom: 8,
