@@ -69,36 +69,20 @@ export default function WelcomeScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      {/* Quick Judge/Demo Logins */}
-      <Card style={styles.demoBox} variant="outlined">
-        <Text style={styles.demoTitle}>⚡ 1-Tap Demo Mode (Expo Go)</Text>
-        <Text style={styles.demoSubtitle}>Instantly test role-based dashboards without typing</Text>
-        <View style={styles.demoButtonRow}>
-          <Button
-            title="Hospital Demo"
-            variant="secondary"
-            loading={loading}
-            onPress={() => handleQuickDemo('hospital')}
-            style={styles.demoBtn}
-            textStyle={{ fontSize: 13 }}
-          />
-          <Button
-            title="Donor Demo"
-            variant="outline"
-            loading={loading}
-            onPress={() => handleQuickDemo('donor')}
-            style={styles.demoBtn}
-            textStyle={{ fontSize: 13 }}
-          />
-        </View>
-      </Card>
-
-      {/* Login link */}
-      <View style={styles.loginRow}>
-        <Text style={styles.loginText}>Already have an account?</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-          <Text style={styles.loginLink}> Log In</Text>
-        </TouchableOpacity>
+      {/* Action Buttons */}
+      <View style={styles.actionSection}>
+        <Button
+          title="Create New Account"
+          variant="primary"
+          onPress={() => navigation.navigate('Signup')}
+          style={styles.actionBtn}
+        />
+        <Button
+          title="Sign In"
+          variant="outline"
+          onPress={() => navigation.navigate('Login')}
+          style={styles.actionBtn}
+        />
       </View>
     </ScreenContainer>
   );
@@ -193,32 +177,11 @@ const styles = StyleSheet.create({
   },
   demoSubtitle: {
     fontSize: 11,
-    color: COLORS.textMuted,
-    marginTop: 2,
-    marginBottom: 10,
+  actionSection: {
+    marginTop: 16,
+    marginBottom: 8,
   },
-  demoButtonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  demoBtn: {
-    flex: 0.48,
-    paddingVertical: 10,
-    marginVertical: 0,
-  },
-  loginRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  loginText: {
-    color: COLORS.textSecondary,
-    fontSize: 14,
-  },
-  loginLink: {
-    color: COLORS.primary,
-    fontSize: 14,
-    fontWeight: '700',
+  actionBtn: {
+    marginVertical: 6,
   },
 });
