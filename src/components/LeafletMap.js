@@ -163,6 +163,18 @@ export default function LeafletMap({
 </html>
   `, [markersJSON, center.lat, center.lng, zoom, routeFromJSON, routeToJSON, etaText]);
 
+  if (Platform.OS === 'web') {
+    return (
+      <View style={[styles.container, { height }, style]}>
+        <iframe
+          srcDoc={html}
+          style={{ width: '100%', height: '100%', border: 'none' }}
+          title="Leaflet Map"
+        />
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.container, { height }, style]}>
       <WebView
