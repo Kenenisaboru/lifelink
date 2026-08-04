@@ -1,25 +1,33 @@
-/**
- * NotificationService — Push notification registration and dispatch
- * Uses expo-notifications with Firebase Cloud Messaging (FCM)
- */
-
-import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
-// Configure foreground notification behavior
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+// Helper to safely get Notifications module on native platforms
+function getNotifications() {
+  if (Platform.OS === 'web') return null;
+  try {
+    return require('expo-notifications');
+  } catch (e) {
+    return null;
+  }
+}
+
+// Configure foreground notification behavior on native only
+const Notifications = getNotifications();
+if (Notifications && typeof Notifications.setNotificationHandler === 'function') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+}
 
 /**
  * Request notification permissions and get Expo push token
  * @returns {Promise<string | null>} - Expo push token or null if denied
  */
 export async function registerForPushNotifications() {
+  if (Platform.OS === 'web' || !Notifications) return null;
   try {
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
@@ -36,7 +44,7 @@ export async function registerForPushNotifications() {
 
     // Get Expo push token
     const token = (await Notifications.getExpoPushTokenAsync({
-      projectId: 'your-expo-project-id', // Replace with your actual Expo project ID
+      projectId: 'your-expo-project-id',
     })).data;
 
     // Android notification channel setup
@@ -66,9 +74,6 @@ export async function registerForPushNotifications() {
 
 /**
  * Send an emergency alert push notification to matched donors
- * Uses Expo's Push Notification API (server-side sending)
- * @param {string[]} donorTokens - Array of Expo push tokens
- * @param {object} requestData - Blood request details
  */
 export async function sendEmergencyPushAlert(donorTokens, requestData) {
   if (!donorTokens || donorTokens.length === 0) return;
@@ -90,7 +95,6 @@ export async function sendEmergencyPushAlert(donorTokens, requestData) {
   }));
 
   try {
-    // In production: POST to https://exp.host/--/api/v2/push/send
     const response = await fetch('https://exp.host/--/api/v2/push/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -107,8 +111,6 @@ export async function sendEmergencyPushAlert(donorTokens, requestData) {
 
 /**
  * Send a status update notification to a hospital
- * @param {string} hospitalToken
- * @param {object} updateData
  */
 export async function sendDonorResponseNotification(hospitalToken, updateData) {
   if (!hospitalToken) return;
@@ -132,9 +134,9 @@ export async function sendDonorResponseNotification(hospitalToken, updateData) {
 
 /**
  * Schedule a local eligibility reminder notification
- * (No server needed — fires on-device)
  */
 export async function scheduleEligibilityReminder(daysUntilEligible) {
+  if (Platform.OS === 'web' || !Notifications) return;
   const triggerSeconds = daysUntilEligible * 86400;
   await Notifications.scheduleNotificationAsync({
     content: {
@@ -150,6 +152,7 @@ export async function scheduleEligibilityReminder(daysUntilEligible) {
  * Cancel all scheduled notifications
  */
 export async function cancelAllNotifications() {
+  if (Platform.OS === 'web' || !Notifications) return;
   await Notifications.cancelAllScheduledNotificationsAsync();
 }
 
@@ -157,6 +160,7 @@ export async function cancelAllNotifications() {
  * Add notification response listener (tap on notification)
  */
 export function addNotificationResponseListener(handler) {
+  if (Platform.OS === 'web' || !Notifications) return { remove: () => {} };
   return Notifications.addNotificationResponseReceivedListener(handler);
 }
 
@@ -164,5 +168,9 @@ export function addNotificationResponseListener(handler) {
  * Add foreground notification listener
  */
 export function addNotificationReceivedListener(handler) {
+  if (Platform.OS === 'web' || !Notifications) return { remove: () => {} };
   return Notifications.addNotificationReceivedListener(handler);
 }
+
+export const registerForPushNotificationsAsync = registerForPushNotifications;
+
