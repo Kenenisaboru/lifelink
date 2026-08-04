@@ -9,9 +9,14 @@ import WelcomeScreen from '../screens/auth/WelcomeScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import SignupScreen from '../screens/auth/SignupScreen';
 
-// Dashboards
+// Donor Screens
 import DonorDashboardScreen from '../screens/donor/DonorDashboardScreen';
+import PaymentScreen from '../screens/donor/PaymentScreen';
+
+// Hospital Screens
 import HospitalDashboardScreen from '../screens/hospital/HospitalDashboardScreen';
+import CreateRequestScreen from '../screens/hospital/CreateRequestScreen';
+import ResponseTrackerScreen from '../screens/hospital/ResponseTrackerScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -42,11 +47,14 @@ export default function AppNavigator() {
           // Hospital Stack
           <>
             <Stack.Screen name="HospitalDashboard" component={HospitalDashboardScreen} />
+            <Stack.Screen name="CreateRequest" component={CreateRequestScreen} />
+            <Stack.Screen name="ResponseTracker" component={ResponseTrackerScreen} />
           </>
         ) : (
           // Donor Stack
           <>
             <Stack.Screen name="DonorDashboard" component={DonorDashboardScreen} />
+            <Stack.Screen name="Payment" component={PaymentScreen} />
           </>
         )}
       </Stack.Navigator>
