@@ -2,6 +2,7 @@ import React from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider } from './src/context/AuthContext';
+import { RequestProvider } from './src/context/RequestContext';
 import AppNavigator from './src/navigation/AppNavigator';
 
 export default function App() {
@@ -9,7 +10,9 @@ export default function App() {
     <SafeAreaProvider>
       <StatusBar style="light" />
       <AuthProvider>
-        <AppNavigator />
+        <RequestProvider>
+          <AppNavigator />
+        </RequestProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );
