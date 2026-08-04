@@ -1,18 +1,31 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
 import ScreenContainer from '../../components/ScreenContainer';
 import Card from '../../components/Card';
 import Badge from '../../components/Badge';
 import Button from '../../components/Button';
 import { COLORS } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
+import { useRequests } from '../../context/RequestContext';
 
-export default function HospitalDashboardScreen() {
+export default function HospitalDashboardScreen({ navigation }) {
   const { user, logout } = useAuth();
+  const { requests, getActiveRequests, getFulfilledRequests } = useRequests();
+
+  const [activeTab, setActiveTab] = useState('active'); // 'active' | 'fulfilled'
+
+  const activeRequests = getActiveRequests();
+  const fulfilledRequests = getFulfilledRequests();
+  const displayRequests = activeTab === 'active' ? activeRequests : fulfilledRequests;
+
+  const totalResponsesCount = requests.reduce(
+    (acc, req) => acc + (req.responses ? req.responses.length : 0),
+    0
+  );
 
   return (
     <ScreenContainer contentContainerStyle={styles.container}>
-      {/* Top Bar */}
+      {/* Top Bar Header */}
       <View style={styles.topHeader}>
         <View style={{ flex: 1 }}>
           <Text style={styles.greeting}>Hospital Portal</Text>
@@ -25,57 +38,130 @@ export default function HospitalDashboardScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Hospital Profile Card */}
-      <Card style={styles.profileCard}>
-        <View style={styles.cardHeaderRow}>
-          <Badge label="VERIFIED MEDICAL FACILITY" type="hospital" />
-          <Text style={styles.contactName}>Dr. {user?.name || 'Admin'}</Text>
-        </View>
-        <Text style={styles.locationText}>
-          📍 {user?.location?.city || 'Upper Hill, Nairobi'}
-        </Text>
-        <Text style={styles.emailText}>{user?.email}</Text>
-
+      {/* Hospital Stats Overview */}
+      <Card style={styles.statsCard}>
         <View style={styles.statsRow}>
           <View style={styles.statBox}>
-            <Text style={styles.statNum}>0</Text>
-            <Text style={styles.statLabel}>Active Alerts</Text>
+            <Text style={[styles.statNum, { color: COLORS.primary }]}>
+              {activeRequests.length}
+            </Text>
+            <Text style={styles.statLabel}>Active Emergency</Text>
           </View>
           <View style={[styles.statBox, styles.statBorder]}>
-            <Text style={styles.statNum}>0</Text>
+            <Text style={[styles.statNum, { color: COLORS.secondary }]}>
+              {totalResponsesCount}
+            </Text>
             <Text style={styles.statLabel}>Responded Donors</Text>
           </View>
           <View style={styles.statBox}>
-            <Text style={[styles.statNum, { color: COLORS.accentGreen }]}>0</Text>
+            <Text style={[styles.statNum, { color: COLORS.accentGreen }]}>
+              {fulfilledRequests.length}
+            </Text>
             <Text style={styles.statLabel}>Fulfilled</Text>
           </View>
         </View>
       </Card>
 
-      {/* Create Request CTA */}
-      <View style={styles.actionHeader}>
-        <Text style={styles.actionTitle}>Broadcast Emergency Request</Text>
+      {/* Action CTA: Create Request */}
+      <Button
+        title="🚨 Broadcast New Emergency Request"
+        variant="primary"
+        onPress={() => navigation.navigate('CreateRequest')}
+        style={styles.createBtn}
+      />
+
+      {/* Tabs Filter */}
+      <View style={styles.tabsRow}>
+        <TouchableOpacity
+          style={[styles.tabItem, activeTab === 'active' && styles.activeTab]}
+          onPress={() => setActiveTab('active')}
+        >
+          <Text style={[styles.tabText, activeTab === 'active' && styles.activeTabText]}>
+            Active Requests ({activeRequests.length})
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.tabItem, activeTab === 'fulfilled' && styles.activeTab]}
+          onPress={() => setActiveTab('fulfilled')}
+        >
+          <Text style={[styles.tabText, activeTab === 'fulfilled' && styles.activeTabText]}>
+            Fulfilled ({fulfilledRequests.length})
+          </Text>
+        </TouchableOpacity>
       </View>
 
-      <Card style={styles.createCard} variant="glow">
-        <Text style={styles.createIcon}>🚨</Text>
-        <Text style={styles.createTitle}>Post Emergency Blood Request</Text>
-        <Text style={styles.createDesc}>
-          Specify required blood type (e.g. O+, A-, AB+), urgency level, and auto-calculate donor transport assistance.
-        </Text>
+      {/* Emergency Requests List */}
+      {displayRequests.length === 0 ? (
+        <Card style={styles.emptyCard}>
+          <Text style={styles.emptyIcon}>📋</Text>
+          <Text style={styles.emptyTitle}>
+            No {activeTab === 'active' ? 'Active' : 'Fulfilled'} Emergency Requests
+          </Text>
+          <Text style={styles.emptySub}>
+            {activeTab === 'active'
+              ? 'Tap the red button above to broadcast a new blood request to nearby donors.'
+              : 'Requests marked as fulfilled will be archived here.'}
+          </Text>
+        </Card>
+      ) : (
+        displayRequests.map((item) => {
+          const respCount = item.responses ? item.responses.length : 0;
+          return (
+            <TouchableOpacity
+              key={item.id}
+              activeOpacity={0.85}
+              onPress={() => navigation.navigate('ResponseTracker', { requestId: item.id })}
+            >
+              <Card
+                style={styles.requestCard}
+                variant={item.urgency === 'critical' && item.status === 'open' ? 'glow' : 'default'}
+              >
+                <View style={styles.cardTopRow}>
+                  <View style={styles.bloodTypeBox}>
+                    <Text style={styles.bloodTypeLabel}>TYPE</Text>
+                    <Text style={styles.bloodTypeValue}>{item.bloodType}</Text>
+                  </View>
 
-        <Button
-          title="+ Create New Emergency Request"
-          variant="secondary"
-          onPress={() => alert('Phase 2 will unlock full request creation modal & live response tracking!')}
-          style={styles.createBtn}
-        />
-        <View style={styles.phaseIndicator}>
-          <Text style={styles.phaseText}>Phase 1 Complete — Navigated to Hospital Portal</Text>
-        </View>
-      </Card>
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.badgeLine}>
+                      <Badge label={item.urgency.toUpperCase()} type={item.urgency} size="small" />
+                      <Text style={styles.timeAgoText}>
+                        {getTimeAgo(item.createdAt)}
+                      </Text>
+                    </View>
+                    <Text style={styles.reqTitle}>{item.unitsNeeded} Units Required</Text>
+                    <Text style={styles.reqLoc}>📍 {item.location?.city || 'Nairobi'}</Text>
+                  </View>
+
+                  <Text style={styles.arrowIcon}>→</Text>
+                </View>
+
+                <View style={styles.cardFooterRow}>
+                  <View style={styles.responsePill}>
+                    <Text style={styles.responseCountText}>
+                      🙋‍♂️ {respCount} Donor{respCount !== 1 ? 's' : ''} Responded
+                    </Text>
+                  </View>
+                  <Text style={styles.feeText}>Fee: KSh {item.suggestedAmount}</Text>
+                </View>
+              </Card>
+            </TouchableOpacity>
+          );
+        })
+      )}
     </ScreenContainer>
   );
+}
+
+function getTimeAgo(isoString) {
+  if (!isoString) return 'Just now';
+  const diffMs = Date.now() - new Date(isoString).getTime();
+  const mins = Math.floor(diffMs / (1000 * 60));
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  return `${hours}h ago`;
 }
 
 const styles = StyleSheet.create({
@@ -115,38 +201,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
-  profileCard: {
-    marginBottom: 20,
-  },
-  cardHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  contactName: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-  },
-  locationText: {
-    fontSize: 14,
-    color: COLORS.text,
-    fontWeight: '600',
-  },
-  emailText: {
-    fontSize: 12,
-    color: COLORS.textMuted,
-    marginTop: 2,
+  statsCard: {
     marginBottom: 14,
+    padding: 12,
   },
   statsRow: {
     flexDirection: 'row',
-    backgroundColor: COLORS.surfaceLight,
-    borderRadius: 12,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
   },
   statBox: {
     flex: 1,
@@ -158,61 +218,143 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   statNum: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: COLORS.secondary,
+    fontSize: 22,
+    fontWeight: '900',
   },
   statLabel: {
     fontSize: 10,
     color: COLORS.textMuted,
     marginTop: 2,
     fontWeight: '600',
-  },
-  actionHeader: {
-    marginBottom: 10,
-  },
-  actionTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: COLORS.text,
-  },
-  createCard: {
-    alignItems: 'center',
-    padding: 22,
-  },
-  createIcon: {
-    fontSize: 36,
-    marginBottom: 8,
-  },
-  createTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.text,
     textAlign: 'center',
-  },
-  createDesc: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginTop: 6,
-    marginBottom: 16,
-    lineHeight: 18,
   },
   createBtn: {
-    width: '100%',
+    marginBottom: 16,
   },
-  phaseIndicator: {
-    marginTop: 14,
-    backgroundColor: 'rgba(0, 229, 255, 0.1)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  tabsRow: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.surfaceLight,
+    borderRadius: 10,
+    padding: 3,
+    marginBottom: 14,
+  },
+  tabItem: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: COLORS.secondary,
   },
-  phaseText: {
+  activeTab: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  tabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.textMuted,
+  },
+  activeTabText: {
+    color: COLORS.text,
+    fontWeight: '700',
+  },
+  emptyCard: {
+    alignItems: 'center',
+    padding: 24,
+  },
+  emptyIcon: {
+    fontSize: 34,
+    marginBottom: 8,
+  },
+  emptyTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  emptySub: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    textAlign: 'center',
+    marginTop: 4,
+    lineHeight: 16,
+  },
+  requestCard: {
+    marginVertical: 6,
+    padding: 14,
+  },
+  cardTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  bloodTypeBox: {
+    width: 52,
+    height: 52,
+    borderRadius: 12,
+    backgroundColor: COLORS.primaryGlow,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  bloodTypeLabel: {
+    fontSize: 8,
+    fontWeight: '800',
+    color: COLORS.primary,
+  },
+  bloodTypeValue: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: COLORS.primary,
+  },
+  badgeLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  timeAgoText: {
+    fontSize: 11,
+    color: COLORS.textMuted,
+    marginLeft: 8,
+  },
+  reqTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginTop: 4,
+  },
+  reqLoc: {
     fontSize: 12,
     color: COLORS.secondary,
+    marginTop: 2,
+  },
+  arrowIcon: {
+    fontSize: 20,
+    color: COLORS.textMuted,
+    marginLeft: 6,
+  },
+  cardFooterRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  responsePill: {
+    backgroundColor: 'rgba(0, 230, 118, 0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  responseCountText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.accentGreen,
+  },
+  feeText: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
     fontWeight: '600',
   },
 });
