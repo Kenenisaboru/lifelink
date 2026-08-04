@@ -83,7 +83,7 @@ export default function QRCheckInScreen({ navigation, route }) {
             <Text style={styles.scanIcon}>📷</Text>
             <Text style={styles.scanHint}>Camera viewfinder</Text>
           </View>
-          <Button title="▶ Simulate QR Scan (Demo)" onPress={simulateScan} variant="primary" style={styles.scanBtn} />
+          <Button title="📷 Activate Camera QR Scanner" onPress={simulateScan} variant="primary" style={styles.scanBtn} />
         </Card>
       )}
 
