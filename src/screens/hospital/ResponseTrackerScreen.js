@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import ScreenContainer from '../../components/ScreenContainer';
 import Card from '../../components/Card';
 import Badge from '../../components/Badge';
@@ -77,7 +77,7 @@ export default function ResponseTrackerScreen({ route, navigation }) {
                 : `${responses.length} Donor${responses.length > 1 ? 's' : ''} En Route`}
             </Text>
             <Text style={styles.countSub}>
-              {isFulfilled ? 'Request complete' : 'Alert active in 8km radius'}
+              {isFulfilled ? 'Request complete' : 'Alert active in radius'}
             </Text>
           </View>
         </View>
@@ -93,7 +93,7 @@ export default function ResponseTrackerScreen({ route, navigation }) {
           <Text style={styles.emptyIcon}>⏳</Text>
           <Text style={styles.emptyTitle}>No Donor Responses Yet</Text>
           <Text style={styles.emptySub}>
-            Compatible nearby donors receive live alerts. Responded donors will appear here instantly.
+            Compatible nearby donors receive live alerts and pay transport via Telebirr, M-Pesa, or CBE Birr. Responded donors will appear here instantly.
           </Text>
         </Card>
       ) : (
@@ -105,14 +105,21 @@ export default function ResponseTrackerScreen({ route, navigation }) {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.donorName}>{resp.donorName || 'Anonymous Donor'}</Text>
-                <Text style={styles.trxId}>M-PESA: {resp.transactionId}</Text>
+                <Text style={styles.trxId}>{resp.transactionId}</Text>
               </View>
               <Badge label={resp.bloodType} type="donor" size="small" />
             </View>
 
             <View style={styles.donorFooter}>
-              <Text style={styles.paidLabel}>Transport Fee Paid:</Text>
-              <Text style={styles.paidAmount}>KSh {resp.amountPaid}</Text>
+              <View style={styles.gatewayTag}>
+                <Text style={styles.gatewayTagText}>
+                  💳 {resp.paymentMethod || 'Mobile Payment'}
+                </Text>
+              </View>
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text style={styles.paidLabel}>Transport Fee Paid</Text>
+                <Text style={styles.paidAmount}>KSh / Birr {resp.amountPaid}</Text>
+              </View>
             </View>
           </Card>
         ))
@@ -271,6 +278,7 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     textAlign: 'center',
     marginTop: 4,
+    lineHeight: 16,
   },
   donorCard: {
     marginVertical: 6,
@@ -312,8 +320,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 10,
   },
+  gatewayTag: {
+    backgroundColor: COLORS.surfaceLight,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  gatewayTagText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.secondary,
+  },
   paidLabel: {
-    fontSize: 12,
+    fontSize: 10,
     color: COLORS.textMuted,
   },
   paidAmount: {
