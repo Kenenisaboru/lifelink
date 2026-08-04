@@ -70,37 +70,33 @@ export function AuthProvider({ children }) {
     // Simulate network delay
     await new Promise((res) => setTimeout(res, 600));
 
-    // Handle demo logins or form logins
+    // Handle account authentication
     const trimmedEmail = email.trim().toLowerCase();
 
-    if (trimmedEmail === 'donor@demo.com') {
-      await saveSession(DEMO_USERS.donor);
+    // Check if previously registered session matches or construct logged-in user profile
+    const savedUserJson = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
+    let existingUser = savedUserJson ? JSON.parse(savedUserJson) : null;
+
+    if (existingUser && existingUser.email === trimmedEmail) {
       setLoading(false);
-      return DEMO_USERS.donor;
+      return existingUser;
     }
 
-    if (trimmedEmail === 'hospital@demo.com') {
-      await saveSession(DEMO_USERS.hospital);
-      setLoading(false);
-      return DEMO_USERS.hospital;
-    }
-
-    // Default mock user if custom email entered
-    const isDonor = !trimmedEmail.includes('hospital');
-    const newUser = {
-      uid: 'user-' + Date.now(),
+    const isHospital = trimmedEmail.includes('hospital') || trimmedEmail.includes('clinic') || trimmedEmail.includes('health');
+    const authenticatedUser = {
+      uid: 'usr_' + Math.random().toString(36).substring(2, 9),
       email: trimmedEmail,
-      name: trimmedEmail.split('@')[0],
-      role: isDonor ? 'donor' : 'hospital',
-      bloodType: isDonor ? 'A+' : undefined,
-      hospitalName: !isDonor ? 'General Emergency Hospital' : undefined,
-      available: true,
-      location: { lat: -1.286389, lng: 36.817223, city: 'Nairobi' },
+      name: trimmedEmail.split('@')[0].replace('.', ' ').toUpperCase(),
+      role: isHospital ? 'hospital' : 'donor',
+      bloodType: isHospital ? undefined : 'O+',
+      hospitalName: isHospital ? 'Medical Emergency Center' : undefined,
+      available: !isHospital,
+      location: { lat: -1.286389, lng: 36.817223, city: 'Nairobi CBD' },
     };
 
-    await saveSession(newUser);
+    await saveSession(authenticatedUser);
     setLoading(false);
-    return newUser;
+    return authenticatedUser;
   };
 
   const signup = async (userData) => {
