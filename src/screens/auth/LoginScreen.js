@@ -43,16 +43,7 @@ export default function LoginScreen({ navigation }) {
     }
   };
 
-  const fillDemo = (role) => {
-    if (role === 'donor') {
-      setEmail('donor@demo.com');
-      setPassword('password123');
-    } else {
-      setEmail('hospital@demo.com');
-      setPassword('password123');
-    }
-    setErrors({});
-  };
+
 
   return (
     <ScreenContainer contentContainerStyle={styles.container}>
@@ -100,18 +91,7 @@ export default function LoginScreen({ navigation }) {
         />
       </Card>
 
-      {/* Quick Autofill Helper */}
-      <View style={styles.demoFillSection}>
-        <Text style={styles.demoFillTitle}>Quick Demo Credentials:</Text>
-        <View style={styles.demoFillRow}>
-          <TouchableOpacity style={styles.demoPill} onPress={() => fillDemo('donor')}>
-            <Text style={styles.demoPillText}>Fill Donor Demo</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.demoPill} onPress={() => fillDemo('hospital')}>
-            <Text style={styles.demoPillText}>Fill Hospital Demo</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+
 
       <View style={styles.footerRow}>
         <Text style={styles.footerText}>Don't have an account?</Text>
@@ -159,32 +139,6 @@ const styles = StyleSheet.create({
   },
   submitBtn: {
     marginTop: 12,
-  },
-  demoFillSection: {
-    marginTop: 20,
-    alignItems: 'center',
-  },
-  demoFillTitle: {
-    fontSize: 12,
-    color: COLORS.textMuted,
-    marginBottom: 8,
-  },
-  demoFillRow: {
-    flexDirection: 'row',
-  },
-  demoPill: {
-    backgroundColor: COLORS.surfaceLight,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    marginHorizontal: 4,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  demoPillText: {
-    fontSize: 12,
-    color: COLORS.secondary,
-    fontWeight: '600',
   },
   footerRow: {
     flexDirection: 'row',
