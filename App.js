@@ -6,6 +6,7 @@ import { RequestProvider } from './src/context/RequestContext';
 import { GamificationProvider } from './src/context/GamificationContext';
 import { InventoryProvider } from './src/context/InventoryContext';
 import { registerForPushNotificationsAsync } from './src/services/NotificationService';
+import { ErrorBoundary } from './src/components/ErrorBoundary';
 import AppNavigator from './src/navigation/AppNavigator';
 
 export default function App() {
@@ -17,17 +18,20 @@ export default function App() {
   }, []);
 
   return (
-    <SafeAreaProvider>
-      <StatusBar style="light" />
-      <AuthProvider>
-        <RequestProvider>
-          <GamificationProvider>
-            <InventoryProvider>
-              <AppNavigator />
-            </InventoryProvider>
-          </GamificationProvider>
-        </RequestProvider>
-      </AuthProvider>
-    </SafeAreaProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <StatusBar style="light" />
+        <AuthProvider>
+          <RequestProvider>
+            <GamificationProvider>
+              <InventoryProvider>
+                <AppNavigator />
+              </InventoryProvider>
+            </GamificationProvider>
+          </RequestProvider>
+        </AuthProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }
+
