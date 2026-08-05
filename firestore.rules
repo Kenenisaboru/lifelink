@@ -1,0 +1,165 @@
+// LifeLink Firestore Security Rules
+// HIPAA/GDPR-compliant: protects patient data and donor PII
+// Version: 2.0 — Enterprise Pro
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── Helper Functions ──────────────────────────────────────────
+
+    // Authenticated user check
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if the caller is the resource owner
+    function isOwner(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+
+    // Check caller's role (stored in custom claims)
+    function hasRole(role) {
+      return isAuthenticated() && request.auth.token.role == role;
+    }
+
+    // Donor role check
+    function isDonor() {
+      return hasRole('donor');
+    }
+
+    // Hospital role check
+    function isHospital() {
+      return hasRole('hospital');
+    }
+
+    // Admin override (internal service account)
+    function isAdmin() {
+      return isAuthenticated() && request.auth.token.admin == true;
+    }
+
+    // Validate required fields exist
+    function hasFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    // ─── Users Collection ──────────────────────────────────────────
+    // Donor PII is private — only the user themselves can read their full profile
+    match /users/{userId} {
+      // Read: only self or admin
+      allow read: if isOwner(userId) || isAdmin();
+
+      // Create: only authenticated users creating their own document
+      allow create: if isOwner(userId)
+        && hasFields(['uid', 'email', 'name', 'role', 'createdAt'])
+        && request.resource.data.uid == userId;
+
+      // Update: only self (cannot change uid or role after creation)
+      allow update: if isOwner(userId)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['uid', 'role'])
+        && isAdmin() == false;
+
+      // Admin can update anything
+      allow write: if isAdmin();
+
+      // Delete: admin only — accounts are soft-deleted
+      allow delete: if isAdmin();
+    }
+
+    // ─── Blood Requests Collection ──────────────────────────────────
+    // Emergency requests are readable by authenticated donors (for matching)
+    // Only hospitals can create/manage their own requests
+    match /requests/{requestId} {
+      // Read: any authenticated user (donors need to see requests for matching)
+      allow read: if isAuthenticated();
+
+      // Create: hospitals only, must include hospitalId matching caller's uid
+      allow create: if isHospital()
+        && hasFields([
+          'hospitalId', 'hospitalName', 'bloodType', 'urgency',
+          'unitsNeeded', 'location', 'suggestedAmount', 'status', 'createdAt'
+        ])
+        && request.resource.data.hospitalId == request.auth.uid
+        && request.resource.data.status == 'open';
+
+      // Update: hospital can update their own request OR donor can add response
+      allow update: if (
+          // Hospital updates their own request
+          (isHospital() && resource.data.hospitalId == request.auth.uid)
+          // Donor adds response (can only modify 'responses' array)
+          || (isDonor()
+              && request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['responses'])
+              && resource.data.status == 'open')
+        );
+
+      // Delete: hospital owner or admin only
+      allow delete: if (isHospital() && resource.data.hospitalId == request.auth.uid)
+        || isAdmin();
+    }
+
+    // ─── Inventory Collection ──────────────────────────────────────
+    // Each hospital's blood inventory — only readable by that hospital
+    match /inventory/{hospitalId} {
+      // Read: owning hospital or admin
+      allow read: if isOwner(hospitalId) || isAdmin();
+
+      // Write: owning hospital or admin
+      allow write: if isOwner(hospitalId) || isAdmin();
+    }
+
+    // ─── Escrow Collection ─────────────────────────────────────────
+    // Financial records — restricted to both parties and admin
+    match /escrow/{escrowId} {
+      // Read: donor or hospital involved, or admin
+      allow read: if isAuthenticated()
+        && (resource.data.donorId == request.auth.uid
+            || resource.data.hospitalId == request.auth.uid
+            || isAdmin());
+
+      // Create: only donors can initiate escrow (after payment)
+      allow create: if isDonor()
+        && hasFields(['donorId', 'hospitalId', 'requestId', 'amount',
+                      'transactionId', 'status', 'createdAt'])
+        && request.resource.data.donorId == request.auth.uid
+        && request.resource.data.status == 'held';
+
+      // Update: hospital can release, donor cannot self-release
+      allow update: if (
+          (isHospital() && resource.data.hospitalId == request.auth.uid
+            && request.resource.data.status == 'released')
+          || isAdmin()
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    // ─── Notifications / Push Tokens ───────────────────────────────
+    // Push tokens are sensitive — only owner can read/write
+    match /pushTokens/{userId} {
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
+
+    // ─── Leaderboard (Public Aggregated) ───────────────────────────
+    // Leaderboard stores anonymized public scores — all authenticated users can read
+    match /leaderboard/{entryId} {
+      allow read: if isAuthenticated();
+      // Only server-side (admin) writes leaderboard to prevent manipulation
+      allow write: if isAdmin();
+    }
+
+    // ─── Audit Logs ────────────────────────────────────────────────
+    // Immutable audit trail — append only, admin reads
+    match /auditLogs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated(); // Any action can be logged
+      allow update, delete: if false; // Audit logs are immutable
+    }
+
+    // ─── Default Deny ──────────────────────────────────────────────
+    // All other collections are denied by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
