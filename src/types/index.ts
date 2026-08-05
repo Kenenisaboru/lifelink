@@ -1,6 +1,6 @@
 /**
- * LifeLink — Strict Domain Type Definitions
- * All core entity interfaces, union types, and enums
+ * LifeLink — Enterprise Strict Domain Type Definitions
+ * HIPAA/GDPR-compliant interfaces for all core entities
  */
 
 // ─── Blood Types ──────────────────────────────────────────────
@@ -24,24 +24,56 @@ export interface BaseUser {
   name: string;
   role: UserRole;
   location: GeoLocation;
+  /** ISO date string */
+  createdAt?: string;
+  /** FCM/APNs push token for emergency notifications */
+  pushToken?: string;
+  /** Whether account is verified */
+  verified?: boolean;
 }
 
 export interface DonorUser extends BaseUser {
   role: 'donor';
   bloodType: BloodType;
   available: boolean;
+  /** ISO date of last donation */
+  lastDonationDate?: string;
+  /** Cumulative donor score */
+  donorScore?: number;
+  /** Current tier */
+  tier?: DonorTierName;
 }
 
 export interface HospitalUser extends BaseUser {
   role: 'hospital';
   hospitalName: string;
+  /** License / registration number */
+  registrationNumber?: string;
+  /** Hospital's region/district */
+  region?: string;
 }
 
 export type User = DonorUser | HospitalUser;
 
+// ─── Donor Passport ──────────────────────────────────────────
+export interface DonorPassport {
+  donorId: string;
+  name: string;
+  bloodType: BloodType;
+  verified: boolean;
+  donations: number;
+  tier: DonorTierName;
+  /** QR payload version */
+  version: string;
+  /** ISO expiry of this QR token */
+  expiresAt: string;
+  /** HMAC-SHA256 signature for QR integrity */
+  signature?: string;
+}
+
 // ─── Emergency Request ───────────────────────────────────────
 export type UrgencyLevel = 'critical' | 'medium' | 'low';
-export type RequestStatus = 'open' | 'fulfilled';
+export type RequestStatus = 'open' | 'fulfilled' | 'cancelled';
 
 export interface DonorResponse {
   donorId: string;
@@ -52,6 +84,8 @@ export interface DonorResponse {
   paymentMethodId?: string;
   transactionId: string;
   respondedAt: string;
+  /** Approximate ETA when donor responded */
+  etaMinutes?: number;
 }
 
 export interface BloodRequest {
@@ -67,6 +101,10 @@ export interface BloodRequest {
   status: RequestStatus;
   createdAt: string;
   responses: DonorResponse[];
+  /** Push notification broadcast status */
+  notified?: boolean;
+  /** Fulfilled timestamp */
+  fulfilledAt?: string;
 }
 
 // ─── Blood Inventory ─────────────────────────────────────────
@@ -88,8 +126,19 @@ export interface StockHistoryDay {
   [key: string]: string | number;
 }
 
-// ─── Payment ─────────────────────────────────────────────────
+/** Full inventory item with metadata */
+export interface InventoryItem {
+  bloodType: BloodType;
+  units: number;
+  status: StockStatus;
+  lastUpdated: string;
+  /** Hospital that owns this inventory */
+  hospitalId: string;
+}
+
+// ─── Payment Transaction ─────────────────────────────────────
 export type PaymentGateway = 'telebirr' | 'mpesa' | 'cbebirr' | 'chapa' | 'amole';
+export type PaymentStatus = 'pending' | 'success' | 'failed' | 'refunded';
 
 export interface PaymentMethod {
   id: PaymentGateway;
@@ -107,6 +156,25 @@ export interface PaymentResult {
   transactionId: string | null;
   error?: string | null;
   rawResponse?: Record<string, unknown> | null;
+}
+
+export interface PaymentTransaction {
+  id: string;
+  donorId: string;
+  hospitalId: string;
+  requestId: string;
+  amount: number;
+  currency: 'ETB' | 'KES' | 'USD';
+  gateway: PaymentGateway;
+  status: PaymentStatus;
+  transactionId: string;
+  phoneNumber: string;
+  createdAt: string;
+  updatedAt: string;
+  /** Raw webhook payload from gateway */
+  webhookPayload?: Record<string, unknown>;
+  /** HMAC signature from gateway for validation */
+  signature?: string;
 }
 
 export interface ChapaPaymentResult extends PaymentResult {
@@ -156,6 +224,15 @@ export interface EscrowActionResult {
 // ─── Gamification ────────────────────────────────────────────
 export type DonorTierName = 'New Donor' | 'Bronze' | 'Silver' | 'Gold' | 'Diamond';
 export type BadgeTier = 'bronze' | 'silver' | 'gold' | 'diamond' | 'special' | 'legendary';
+
+/** For Badge component variant */
+export type BadgeType =
+  | 'critical'
+  | 'medium'
+  | 'low'
+  | 'donor'
+  | 'hospital'
+  | 'primary';
 
 export interface DonorTier {
   name: DonorTierName;
@@ -240,7 +317,11 @@ export interface EmergencyPushPayload {
 }
 
 // ─── Offline Sync ────────────────────────────────────────────
-export type OfflineOperationType = 'CREATE_REQUEST' | 'ADD_RESPONSE' | 'MARK_FULFILLED' | 'UPDATE_STOCK';
+export type OfflineOperationType =
+  | 'CREATE_REQUEST'
+  | 'ADD_RESPONSE'
+  | 'MARK_FULFILLED'
+  | 'UPDATE_STOCK';
 
 export interface OfflineOperation {
   id: string;
@@ -248,4 +329,38 @@ export interface OfflineOperation {
   payload: Record<string, unknown>;
   timestamp: number;
   retryCount: number;
+}
+
+// ─── Background Location Task ─────────────────────────────────
+export interface BackgroundLocationPayload {
+  locations: Array<{
+    coords: {
+      latitude: number;
+      longitude: number;
+      accuracy: number | null;
+      speed: number | null;
+    };
+    timestamp: number;
+  }>;
+}
+
+// ─── Webhook Signatures ──────────────────────────────────────
+export interface WebhookEvent {
+  gateway: PaymentGateway;
+  event: string;
+  transactionId: string;
+  amount: number;
+  status: PaymentStatus;
+  signature: string;
+  receivedAt: string;
+  rawBody: string;
+}
+
+// ─── Firebase Security Rule Types ────────────────────────────
+export interface FirestoreRuleContext {
+  request: {
+    auth: { uid: string; token: Record<string, unknown> } | null;
+    resource: { data: Record<string, unknown> };
+  };
+  resource: { data: Record<string, unknown> } | null;
 }
