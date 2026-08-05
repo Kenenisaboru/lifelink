@@ -7,6 +7,12 @@ import Button from '../../components/Button';
 import { COLORS } from '../../theme/colors';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { releaseFunds } from '../../services/EscrowService';
+import {
+  hapticQRScanSuccess,
+  hapticPaymentConfirmed,
+  hapticError,
+  hapticLight,
+} from '../../services/HapticsService';
 import type { QRCheckInScreenProps } from '../../types/navigation';
 
 interface ScannedDonorData {
@@ -42,9 +48,11 @@ export default function QRCheckInScreen({ navigation }: QRCheckInScreenProps) {
 
   const simulateScan = () => {
     setScanState('scanning');
+    hapticLight();
     setTimeout(() => {
       setScannedDonor(DEMO_SCANNED_DONOR);
       setScanState('scanned');
+      hapticQRScanSuccess();
     }, 2000);
   };
 
@@ -57,13 +65,16 @@ export default function QRCheckInScreen({ navigation }: QRCheckInScreenProps) {
       if (result.success) {
         setScanState('confirmed');
         setConfirmed(true);
+        await hapticPaymentConfirmed();
       } else {
         setScanState('error');
+        await hapticError();
         Alert.alert('Release Failed', result.message);
       }
     } else {
       setScanState('confirmed');
       setConfirmed(true);
+      await hapticPaymentConfirmed();
     }
 
     setConfirmLoading(false);
