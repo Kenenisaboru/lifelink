@@ -13,11 +13,14 @@ import type { LiveMapScreenProps } from '../../types/navigation';
 import type { MapMarker, MapPoint } from '../../components/LeafletMap';
 import type { BloodRequest, DonorUser } from '../../types';
 
+// Named type alias so TypeScript tracks it correctly across useMemo + JSX
+type NearestRequest = BloodRequest & { distance: number };
+
 export default function LiveMapScreen({ navigation }: LiveMapScreenProps) {
   const { user } = useAuthStore();
   const { requests } = useRequestStore();
 
-  const userLoc: MapPoint = user?.location || { lat: -1.286389, lng: 36.817223 };
+  const userLoc: MapPoint = user?.location ?? { lat: -1.286389, lng: 36.817223 };
   const isHospital = user?.role === 'hospital';
   const donorUser = user as DonorUser | null;
 
@@ -25,10 +28,14 @@ export default function LiveMapScreen({ navigation }: LiveMapScreenProps) {
     const openRequests = requests.filter((r) => r.status === 'open');
     const mapMarkers: MapMarker[] = [];
 
+    // ── Hospital / request pins ──────────────────────────────────
     openRequests.forEach((req) => {
-      const dist = calculateHaversineDistance(userLoc.lat, userLoc.lng, req.location.lat, req.location.lng);
+      const dist = calculateHaversineDistance(
+        userLoc.lat, userLoc.lng,
+        req.location.lat, req.location.lng
+      );
       const eta = calculateETA(dist);
-      const respCount = req.responses?.length || 0;
+      const respCount = req.responses?.length ?? 0;
 
       mapMarkers.push({
         id: req.id,
@@ -38,7 +45,7 @@ export default function LiveMapScreen({ navigation }: LiveMapScreenProps) {
         label: `${req.bloodType} ${req.urgency.toUpperCase()}`,
         popup: `
           <div class="popup-title">🏥 ${req.hospitalName}</div>
-          <div class="popup-sub">📍 ${req.location?.city || 'Nairobi'}</div>
+          <div class="popup-sub">📍 ${req.location?.city ?? 'Nairobi'}</div>
           <div class="popup-badge">${req.bloodType} — ${req.urgency.toUpperCase()}</div>
           <div class="popup-sub">${req.unitsNeeded} Units • ${respCount} Donors Responded</div>
           <div class="popup-sub">📏 ${formatDistance(dist)} • 🕐 ${eta.formatted}</div>
@@ -46,19 +53,25 @@ export default function LiveMapScreen({ navigation }: LiveMapScreenProps) {
       });
     });
 
+    // ── Self marker ──────────────────────────────────────────────
     mapMarkers.push({
       id: 'self',
       lat: userLoc.lat,
       lng: userLoc.lng,
       type: isHospital ? 'hospital' : 'donor',
       label: isHospital ? 'Your Hospital' : 'Your Location',
-      popup: `<div class="popup-title">${isHospital ? '🏥' : '🙋'} ${user?.name || 'You'}</div>
-              <div class="popup-sub">${isHospital ? 'Hospital Portal' : `Blood Type: ${donorUser?.bloodType || 'O+'}`}</div>`,
+      popup: `<div class="popup-title">${isHospital ? '🏥' : '🙋'} ${user?.name ?? 'You'}</div>
+              <div class="popup-sub">${
+                isHospital
+                  ? 'Hospital Portal'
+                  : `Blood Type: ${donorUser?.bloodType ?? 'O+'}`
+              }</div>`,
     });
 
+    // ── Donor response pins (hospital view) ──────────────────────
     if (isHospital) {
       openRequests.forEach((req) => {
-        (req.responses || []).forEach((resp, idx) => {
+        (req.responses ?? []).forEach((resp, idx) => {
           const offset = (idx + 1) * 0.004;
           mapMarkers.push({
             id: `donor-${req.id}-${idx}`,
@@ -73,28 +86,48 @@ export default function LiveMapScreen({ navigation }: LiveMapScreenProps) {
       });
     }
 
-    let rf: MapPoint | undefined = undefined;
-    let rt: MapPoint | undefined = undefined;
+    // ── Nearest request route (donor view) ──────────────────────
+    let rf: MapPoint | undefined;
+    let rt: MapPoint | undefined;
     let et = '';
-    let nearest: (BloodRequest & { distance: number }) | null = null;
+    // Use a local typed variable — avoids TypeScript narrowing it to `never`
+    // inside forEach callbacks
+    let nearest: NearestRequest | null = null;
 
     if (!isHospital && openRequests.length > 0) {
       let minDist = Infinity;
-      openRequests.forEach((req) => {
-        const d = calculateHaversineDistance(userLoc.lat, userLoc.lng, req.location.lat, req.location.lng);
+      // Accumulate into a separate candidate variable so TS doesn't lose
+      // track of the type when assigning inside the forEach closure
+      let candidate: NearestRequest | null = null;
+
+      for (const req of openRequests) {
+        const d = calculateHaversineDistance(
+          userLoc.lat, userLoc.lng,
+          req.location.lat, req.location.lng
+        );
         if (d < minDist) {
           minDist = d;
-          nearest = { ...req, distance: d };
+          // Explicit spread into the typed alias — TS knows this is NearestRequest
+          candidate = { ...req, distance: d } satisfies NearestRequest;
         }
-      });
-      if (nearest) {
+      }
+
+      nearest = candidate;
+
+      if (nearest !== null) {
         rf = { lat: userLoc.lat, lng: userLoc.lng };
-        rt = { lat: (nearest as BloodRequest).location.lat, lng: (nearest as BloodRequest).location.lng };
+        rt = { lat: nearest.location.lat, lng: nearest.location.lng };
         et = calculateETA(minDist).formatted;
       }
     }
 
-    return { markers: mapMarkers, routeFrom: rf, routeTo: rt, etaText: et, nearestRequest: nearest };
+    return {
+      markers: mapMarkers,
+      routeFrom: rf,
+      routeTo: rt,
+      etaText: et,
+      nearestRequest: nearest,
+    };
   }, [requests, userLoc, isHospital, user?.name, donorUser?.bloodType]);
 
   return (
@@ -118,7 +151,8 @@ export default function LiveMapScreen({ navigation }: LiveMapScreenProps) {
         style={styles.mapContainer}
       />
 
-      {nearestRequest && !isHospital ? (
+      {nearestRequest !== null && !isHospital ? (
+        // nearestRequest is fully typed as NearestRequest here — no casting needed
         <Card style={styles.bottomCard} variant="glow">
           <View style={styles.bottomRow}>
             <View style={styles.bloodBadge}>
@@ -127,10 +161,15 @@ export default function LiveMapScreen({ navigation }: LiveMapScreenProps) {
             <View style={{ flex: 1 }}>
               <Text style={styles.bottomTitle}>{nearestRequest.hospitalName}</Text>
               <Text style={styles.bottomSub}>
-                📏 {formatDistance(nearestRequest.distance)} • 🕐 {calculateETA(nearestRequest.distance).formatted}
+                📏 {formatDistance(nearestRequest.distance)} • 🕐{' '}
+                {calculateETA(nearestRequest.distance).formatted}
               </Text>
             </View>
-            <Badge label={nearestRequest.urgency.toUpperCase()} type={nearestRequest.urgency} size="small" />
+            <Badge
+              label={nearestRequest.urgency.toUpperCase()}
+              type={nearestRequest.urgency}
+              size="small"
+            />
           </View>
         </Card>
       ) : isHospital ? (

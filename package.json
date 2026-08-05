@@ -40,7 +40,7 @@
   "dependencies": {
     "@expo/metro-runtime": "~3.2.3",
     "@react-native-async-storage/async-storage": "~1.23.1",
-    "@react-native-community/netinfo": "^12.0.1",
+    "@react-native-community/netinfo": "^11.3.1",
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/native-stack": "^6.10.1",
     "@sentry/react-native": "^8.21.0",
@@ -71,11 +71,12 @@
     "@expo/ngrok": "^4.1.0",
     "@testing-library/react-native": "^12.9.0",
     "@types/jest": "^29.5.14",
-    "@types/react": "^18.3.31",
+    "@types/react": "~18.2.79",
     "@types/react-native": "^0.72.8",
     "babel-jest": "^29.7.0",
     "babel-plugin-module-resolver": "^5.0.3",
-    "jest-expo": "~51.0.0"
+    "jest-expo": "~51.0.0",
+    "typescript": "~5.3.3"
   },
   "private": true
 }

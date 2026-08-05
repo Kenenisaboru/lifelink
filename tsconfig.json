@@ -1,7 +1,9 @@
 {
   "compilerOptions": {
     "target": "esnext",
-    "lib": ["es2021"],
+    "lib": [
+      "es2021"
+    ],
     "allowJs": true,
     "jsx": "react-native",
     "noEmit": true,
@@ -18,7 +20,9 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": [
+        "src/*"
+      ]
     }
   },
   "include": [
@@ -32,5 +36,6 @@
     "dist",
     "babel.config.js",
     "jest.config.js"
-  ]
+  ],
+  "extends": "expo/tsconfig.base"
 }
