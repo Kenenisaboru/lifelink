@@ -59,6 +59,7 @@ export default function SignupScreen({ route, navigation }: SignupScreenProps) {
         email: email.trim(),
         bloodType: role === 'donor' ? bloodType : undefined,
         hospitalName: role === 'hospital' ? hospitalName.trim() : undefined,
+        password,
       });
     } catch (err) {
       setErrors({ form: (err as Error).message || 'Registration failed. Please try again.' });
