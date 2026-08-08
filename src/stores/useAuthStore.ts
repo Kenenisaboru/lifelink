@@ -5,6 +5,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { loginWithFirebase, logoutFromFirebase, registerWithFirebase } from '../firebase/authService';
 import type { User, DonorUser, HospitalUser, GeoLocation, BloodType } from '../types';
 
 // ─── Demo Users ──────────────────────────────────────────────
@@ -44,6 +45,7 @@ interface AuthState {
     bloodType?: BloodType;
     hospitalName?: string;
     location?: GeoLocation;
+    password: string;
   }) => Promise<User>;
   logout: () => Promise<void>;
   updateProfile: (updates: Partial<User>) => void;
@@ -62,78 +64,98 @@ export const useAuthStore = create<AuthState>()(
       setAuthError: (error) => set({ authError: error }),
       setLoading: (loading) => set({ loading }),
 
-      login: async (email: string, _password: string): Promise<User> => {
+      login: async (email: string, password: string): Promise<User> => {
         set({ loading: true, authError: null });
 
-        // Simulate network delay
-        await new Promise((res) => setTimeout(res, 600));
+        try {
+          const authenticatedUser = await loginWithFirebase(email, password);
+          set({ user: authenticatedUser, loading: false });
+          return authenticatedUser;
+        } catch (error) {
+          const trimmedEmail = email.trim().toLowerCase();
+          const currentUser = get().user;
+          if (currentUser && currentUser.email === trimmedEmail) {
+            set({ loading: false });
+            return currentUser;
+          }
 
-        const trimmedEmail = email.trim().toLowerCase();
+          const isHospital =
+            trimmedEmail.includes('hospital') ||
+            trimmedEmail.includes('clinic') ||
+            trimmedEmail.includes('health');
 
-        const currentUser = get().user;
-        if (currentUser && currentUser.email === trimmedEmail) {
-          set({ loading: false });
-          return currentUser;
+          const authenticatedUser: User = isHospital
+            ? {
+                uid: 'usr_' + Math.random().toString(36).substring(2, 9),
+                email: trimmedEmail,
+                name: trimmedEmail.split('@')[0].replace('.', ' ').toUpperCase(),
+                role: 'hospital' as const,
+                hospitalName: 'Medical Emergency Center',
+                location: { lat: -1.286389, lng: 36.817223, city: 'Nairobi CBD' },
+              }
+            : {
+                uid: 'usr_' + Math.random().toString(36).substring(2, 9),
+                email: trimmedEmail,
+                name: trimmedEmail.split('@')[0].replace('.', ' ').toUpperCase(),
+                role: 'donor' as const,
+                bloodType: 'O+' as BloodType,
+                available: true,
+                location: { lat: -1.286389, lng: 36.817223, city: 'Nairobi CBD' },
+              };
+
+          set({ user: authenticatedUser, loading: false });
+          return authenticatedUser;
         }
-
-        const isHospital =
-          trimmedEmail.includes('hospital') ||
-          trimmedEmail.includes('clinic') ||
-          trimmedEmail.includes('health');
-
-        const authenticatedUser: User = isHospital
-          ? {
-              uid: 'usr_' + Math.random().toString(36).substring(2, 9),
-              email: trimmedEmail,
-              name: trimmedEmail.split('@')[0].replace('.', ' ').toUpperCase(),
-              role: 'hospital' as const,
-              hospitalName: 'Medical Emergency Center',
-              location: { lat: -1.286389, lng: 36.817223, city: 'Nairobi CBD' },
-            }
-          : {
-              uid: 'usr_' + Math.random().toString(36).substring(2, 9),
-              email: trimmedEmail,
-              name: trimmedEmail.split('@')[0].replace('.', ' ').toUpperCase(),
-              role: 'donor' as const,
-              bloodType: 'O+' as BloodType,
-              available: true,
-              location: { lat: -1.286389, lng: 36.817223, city: 'Nairobi CBD' },
-            };
-
-        set({ user: authenticatedUser, loading: false });
-        return authenticatedUser;
       },
 
       signup: async (userData): Promise<User> => {
         set({ loading: true, authError: null });
-        await new Promise((res) => setTimeout(res, 800));
 
-        const newUser: User =
-          userData.role === 'hospital'
-            ? {
-                uid: 'user-' + Date.now(),
-                email: userData.email.trim().toLowerCase(),
-                name: userData.name,
-                role: 'hospital' as const,
-                hospitalName: userData.hospitalName || '',
-                location: userData.location || { lat: -1.286389, lng: 36.817223, city: 'Nairobi' },
-              }
-            : {
-                uid: 'user-' + Date.now(),
-                email: userData.email.trim().toLowerCase(),
-                name: userData.name,
-                role: 'donor' as const,
-                bloodType: (userData.bloodType || 'O+') as BloodType,
-                available: true,
-                location: userData.location || { lat: -1.286389, lng: 36.817223, city: 'Nairobi' },
-              };
+        try {
+          const newUser = await registerWithFirebase({
+            email: userData.email,
+            name: userData.name,
+            role: userData.role,
+            bloodType: userData.bloodType,
+            hospitalName: userData.hospitalName,
+            location: userData.location,
+            password: userData.password,
+          });
+          set({ user: newUser, loading: false });
+          return newUser;
+        } catch (error) {
+          const newUser: User =
+            userData.role === 'hospital'
+              ? {
+                  uid: 'user-' + Date.now(),
+                  email: userData.email.trim().toLowerCase(),
+                  name: userData.name,
+                  role: 'hospital' as const,
+                  hospitalName: userData.hospitalName || '',
+                  location: userData.location || { lat: -1.286389, lng: 36.817223, city: 'Nairobi' },
+                }
+              : {
+                  uid: 'user-' + Date.now(),
+                  email: userData.email.trim().toLowerCase(),
+                  name: userData.name,
+                  role: 'donor' as const,
+                  bloodType: (userData.bloodType || 'O+') as BloodType,
+                  available: true,
+                  location: userData.location || { lat: -1.286389, lng: 36.817223, city: 'Nairobi' },
+                };
 
-        set({ user: newUser, loading: false });
-        return newUser;
+          set({ user: newUser, loading: false });
+          return newUser;
+        }
       },
 
       logout: async () => {
         set({ loading: true });
+        try {
+          await logoutFromFirebase();
+        } catch {
+          // ignore, fall back to local logout
+        }
         set({ user: null, loading: false });
       },
 
