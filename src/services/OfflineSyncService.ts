@@ -5,9 +5,17 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo, { type NetInfoState } from '@react-native-community/netinfo';
 import type { OfflineOperation, OfflineOperationType } from '../types';
-import type { CreateRequestParams } from '../stores/useRequestStore';
 
 const QUEUE_STORAGE_KEY = '@lifelink_offline_queue';
+
+type OfflineCreateRequestPayload = {
+  bloodType: string;
+  urgency: import('../types').UrgencyLevel;
+  unitsNeeded: string | number;
+  suggestedAmount: string | number;
+  notes?: string;
+  location?: import('../types').GeoLocation;
+};
 const NETWORK_STATUS_KEY = '@lifelink_network_online';
 
 // Listeners that will be called when sync completes
@@ -144,7 +152,8 @@ class OfflineSyncService {
     switch (op.type) {
       case 'CREATE_REQUEST': {
         const { useRequestStore } = await import('../stores/useRequestStore');
-        await useRequestStore.getState().createRequest(op.payload as CreateRequestParams);
+        const createRequestPayload = op.payload as OfflineCreateRequestPayload;
+        await useRequestStore.getState().createRequest(createRequestPayload);
         break;
       }
       case 'ADD_RESPONSE': {
