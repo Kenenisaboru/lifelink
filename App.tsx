@@ -9,7 +9,6 @@ import AppNavigator from './src/navigation/AppNavigator';
 // Initialize Sentry crash monitoring
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN || 'https://placeholder@sentry.io/lifelink',
-  enableInExpoDevelopment: true,
   debug: false,
 });
 
