@@ -70,7 +70,13 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   handleReportFeedback = (): void => {
     if (this.state.eventId) {
-      Sentry.showReportDialog({ eventId: this.state.eventId });
+      const showReportDialog = (Sentry as typeof Sentry & {
+        showReportDialog?: (options: { eventId: string }) => void;
+      }).showReportDialog;
+
+      if (typeof showReportDialog === 'function') {
+        showReportDialog({ eventId: this.state.eventId });
+      }
     }
   };
 
