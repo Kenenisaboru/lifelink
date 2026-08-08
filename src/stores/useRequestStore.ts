@@ -78,7 +78,7 @@ const INITIAL_REQUESTS: BloodRequest[] = [
 ];
 
 // ─── Store Interface ─────────────────────────────────────────
-interface CreateRequestParams {
+export interface CreateRequestParams {
   bloodType: string;
   urgency: UrgencyLevel;
   unitsNeeded: string | number;
