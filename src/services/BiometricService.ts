@@ -68,10 +68,12 @@ export async function authenticateWithBiometrics({
       cancelLabel: 'Cancel',
     });
 
+    const biometricResult = result as { success: boolean; error?: string | null; warning?: string | null };
+
     return {
-      success: result.success,
-      error: result.error || null,
-      warning: result.warning || null,
+      success: biometricResult.success,
+      error: biometricResult.error ?? null,
+      warning: biometricResult.warning ?? null,
     };
   } catch (err) {
     return { success: false, error: (err as Error).message };
