@@ -1,5 +1,14 @@
 import React, { ReactNode } from 'react';
-import { View, StyleSheet, SafeAreaView, StatusBar, ScrollView, ViewStyle, StyleProp } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  SafeAreaView,
+  StatusBar,
+  ScrollView,
+  ViewStyle,
+  StyleProp,
+  type RefreshControlProps,
+} from 'react-native';
 import { COLORS } from '../theme/colors';
 
 export interface ScreenContainerProps {
@@ -7,7 +16,7 @@ export interface ScreenContainerProps {
   scrollable?: boolean;
   style?: StyleProp<ViewStyle>;
   contentContainerStyle?: StyleProp<ViewStyle>;
-  refreshControl?: React.ReactElement;
+  refreshControl?: React.ReactElement<RefreshControlProps>;
 }
 
 export default function ScreenContainer({
