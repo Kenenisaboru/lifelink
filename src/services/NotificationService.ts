@@ -18,6 +18,8 @@ if (Notifications && typeof Notifications.setNotificationHandler === 'function')
       shouldShowAlert: true,
       shouldPlaySound: true,
       shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
     }),
   });
 }
@@ -158,7 +160,10 @@ export async function scheduleEligibilityReminder(daysUntilEligible: number): Pr
       body: 'Your 56-day rest period is complete. Ready to save another life?',
       sound: 'default',
     },
-    trigger: { seconds: triggerSeconds },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      seconds: triggerSeconds,
+    },
   });
 }
 
