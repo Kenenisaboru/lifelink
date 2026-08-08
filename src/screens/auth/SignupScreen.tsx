@@ -11,7 +11,7 @@ import type { BloodType } from '../../types';
 import { BLOOD_TYPES } from '../../types';
 
 export default function SignupScreen({ route, navigation }: SignupScreenProps) {
-  const defaultRole = (route?.params as { defaultRole?: 'donor' | 'hospital' })?.defaultRole || 'donor';
+  const defaultRole = route?.params?.defaultRole ?? 'donor';
   const { signup, loading } = useAuthStore();
 
   const [role, setRole] = useState<'donor' | 'hospital'>(defaultRole);
