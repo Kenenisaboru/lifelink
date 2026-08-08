@@ -10,7 +10,7 @@ export type RootStackParamList = {
   // Auth Screens
   Welcome: undefined;
   Login: undefined;
-  Signup: undefined;
+  Signup: { defaultRole?: 'donor' | 'hospital' } | undefined;
 
   // Donor Screens
   DonorDashboard: undefined;
