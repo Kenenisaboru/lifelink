@@ -5,6 +5,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo, { type NetInfoState } from '@react-native-community/netinfo';
 import type { OfflineOperation, OfflineOperationType } from '../types';
+import type { CreateRequestParams } from '../stores/useRequestStore';
 
 const QUEUE_STORAGE_KEY = '@lifelink_offline_queue';
 const NETWORK_STATUS_KEY = '@lifelink_network_online';
@@ -143,9 +144,7 @@ class OfflineSyncService {
     switch (op.type) {
       case 'CREATE_REQUEST': {
         const { useRequestStore } = await import('../stores/useRequestStore');
-        await useRequestStore
-          .getState()
-          .createRequest(op.payload as Parameters<typeof useRequestStore.getState.prototype.createRequest>[0]);
+        await useRequestStore.getState().createRequest(op.payload as CreateRequestParams);
         break;
       }
       case 'ADD_RESPONSE': {
