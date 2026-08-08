@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/react-native';
 import { registerForPushNotificationsAsync } from './src/services/NotificationService';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import AppNavigator from './src/navigation/AppNavigator';
+import { initializeFirebase } from './src/firebase/authService';
 
 // Initialize Sentry crash monitoring
 Sentry.init({
@@ -14,6 +15,10 @@ Sentry.init({
 
 function App() {
   useEffect(() => {
+    initializeFirebase().catch(() => {
+      // Non-fatal
+    });
+
     registerForPushNotificationsAsync().catch(() => {
       // Non-fatal
     });
