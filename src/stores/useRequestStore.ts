@@ -3,6 +3,11 @@
  * Manages emergency blood requests, donor responses, and fulfillment
  */
 import { create } from 'zustand';
+import {
+  createFirestoreRequest,
+  fulfillFirestoreRequest,
+  updateFirestoreResponse,
+} from '../firebase/firestoreService';
 import type { BloodRequest, DonorResponse, UrgencyLevel, GeoLocation } from '../types';
 
 // ─── Seeded Mock Data ────────────────────────────────────────
@@ -109,7 +114,6 @@ export const useRequestStore = create<RequestState>()((set, get) => ({
 
   createRequest: async (params): Promise<BloodRequest> => {
     set({ loading: true });
-    await new Promise((res) => setTimeout(res, 600));
 
     const newReq: BloodRequest = {
       id: 'req-' + Date.now().toString().slice(-6),
@@ -126,16 +130,30 @@ export const useRequestStore = create<RequestState>()((set, get) => ({
       responses: [],
     };
 
-    set((state) => ({
-      requests: [newReq, ...state.requests],
-      loading: false,
-    }));
-    return newReq;
+    try {
+      const remoteRequest = await createFirestoreRequest(newReq);
+      set((state) => ({
+        requests: [remoteRequest, ...state.requests],
+        loading: false,
+      }));
+      return remoteRequest;
+    } catch {
+      set((state) => ({
+        requests: [newReq, ...state.requests],
+        loading: false,
+      }));
+      return newReq;
+    }
   },
 
   markFulfilled: async (requestId) => {
     set({ loading: true });
-    await new Promise((res) => setTimeout(res, 400));
+
+    try {
+      await fulfillFirestoreRequest(requestId);
+    } catch {
+      // ignore and continue with local update
+    }
 
     set((state) => ({
       requests: state.requests.map((req) =>
@@ -147,7 +165,12 @@ export const useRequestStore = create<RequestState>()((set, get) => ({
 
   addDonorResponse: async (requestId, responseObj) => {
     set({ loading: true });
-    await new Promise((res) => setTimeout(res, 500));
+
+    try {
+      await updateFirestoreResponse(requestId, responseObj);
+    } catch {
+      // ignore and continue with local update
+    }
 
     set((state) => ({
       requests: state.requests.map((req) => {
